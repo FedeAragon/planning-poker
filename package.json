@@ -1,0 +1,20 @@
+{
+  "name": "planning-poker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "lint": "pnpm -r lint",
+    "db:migrate": "pnpm --filter server db:migrate",
+    "db:generate": "pnpm --filter server db:generate",
+    "db:push": "pnpm --filter server db:push"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

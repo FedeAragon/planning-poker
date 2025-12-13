@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  roomId         String
+  room           Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  connected      Boolean  @default(true)
+  role           String   @default("voter")
+  lastConnection DateTime @default(now())
+  votes          Vote[]
+
+  @@index([roomId])
+}
+
+model Room {
+  id            String   @id @default(uuid())
+  name          String
+  status        String   @default("active")
+  currentTaskId String?
+  createdAt     DateTime @default(now())
+  users         User[]
+  tasks         Task[]
+}
+
+model Task {
+  id                    String    @id @default(uuid())
+  roomId                String
+  room                  Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  title                 String
+  order                 Int
+  status                String    @default("pending")
+  finalEstimate         Int?
+  votingStartedAt       DateTime?
+  votingDurationSeconds Int?
+  createdAt             DateTime  @default(now())
+  votes                 Vote[]
+
+  @@index([roomId])
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value     Int
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([taskId])
+}
+
