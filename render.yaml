@@ -17,7 +17,7 @@ services:
       pnpm install &&
       pnpm --filter shared build &&
       pnpm --filter server build &&
-      cd packages/server && npx prisma generate && npx prisma migrate deploy
+      cd packages/server && npx prisma generate && npx prisma db push
     startCommand: cd packages/server && node dist/index.js
     envVars:
       - key: NODE_ENV
@@ -27,16 +27,12 @@ services:
           name: planning-poker-db
           property: connectionString
       - key: CLIENT_URL
-        fromService:
-          type: web
-          name: planning-poker-frontend
-          property: url
+        sync: false
 
   # Frontend Static Site
   - type: web
     name: planning-poker-frontend
     runtime: static
-    region: oregon
     buildCommand: |
       npm install -g pnpm &&
       pnpm install &&
@@ -45,12 +41,8 @@ services:
     staticPublishPath: packages/client/dist
     envVars:
       - key: VITE_SERVER_URL
-        fromService:
-          type: web
-          name: planning-poker-backend
-          property: url
+        sync: false
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-
