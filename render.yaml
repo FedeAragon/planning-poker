@@ -16,8 +16,9 @@ services:
       npm install -g pnpm &&
       pnpm install &&
       pnpm --filter shared build &&
+      cd packages/server && npx prisma generate &&
       pnpm --filter server build &&
-      cd packages/server && npx prisma generate && npx prisma db push
+      cd packages/server && npx prisma db push
     startCommand: cd packages/server && node dist/index.js
     envVars:
       - key: NODE_ENV
