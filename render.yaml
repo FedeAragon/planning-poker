@@ -16,7 +16,7 @@ services:
       npm install -g pnpm &&
       pnpm install &&
       pnpm --filter shared build &&
-      cd packages/server && npx prisma generate &&
+      cd packages/server && npx prisma generate && cd ../.. &&
       pnpm --filter server build &&
       cd packages/server && npx prisma db push
     startCommand: cd packages/server && node dist/index.js
