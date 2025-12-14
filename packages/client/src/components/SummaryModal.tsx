@@ -73,7 +73,7 @@ export function SummaryModal({ isOpen, onClose, tasks, roomName }: SummaryModalP
                   <span className="text-xs text-gray-500 font-mono">
                     {formatDuration(task.votingDurationSeconds)}
                   </span>
-                  <Badge variant="primary" className="min-w-[2rem] text-center">
+                  <Badge variant="info" className="min-w-[2rem] text-center">
                     {task.finalEstimate}
                   </Badge>
                 </div>
