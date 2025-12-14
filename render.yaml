@@ -19,7 +19,7 @@ services:
       cd packages/server && npx prisma generate && cd ../.. &&
       pnpm --filter server build &&
       cd packages/server && npx prisma db push
-    startCommand: cd packages/server && node dist/index.js
+    startCommand: cd packages/server && npx tsx src/index.ts
     envVars:
       - key: NODE_ENV
         value: production
