@@ -1,7 +1,6 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import { roomService } from './services/room.service';
-import { userService } from './services/user.service';
 import { taskService } from './services/task.service';
 
 const app: Express = express();
@@ -38,11 +37,8 @@ app.post('/api/rooms', async (req, res) => {
       return;
     }
 
-    // Create room
-    const room = await roomService.create(roomName.trim());
-
-    // Create creator user
-    const user = await userService.register(userName.trim(), room.id, 'creator');
+    // Create room with creator user
+    const { room, user } = await roomService.create(roomName.trim(), userName.trim());
 
     // Add tasks if provided
     let tasksCreated = 0;
