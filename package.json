@@ -11,10 +11,13 @@
     "lint": "pnpm -r lint",
     "db:migrate": "pnpm --filter server db:migrate",
     "db:generate": "pnpm --filter server db:generate",
-    "db:push": "pnpm --filter server db:push"
+    "db:push": "pnpm --filter server db:push",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
-
