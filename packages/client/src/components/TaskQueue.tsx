@@ -137,7 +137,7 @@ export function TaskQueue({ tasks, currentTaskId, canReorder = false, isAdmin = 
                   onDrop={(e) => handleDrop(e, task.id)}
                   onDragEnd={handleDragEnd}
                   className={`
-                    group p-2 rounded-lg flex items-center gap-2 transition-all
+                    group p-2 rounded-lg flex items-start gap-2 transition-all min-w-0
                     ${isCurrent 
                       ? 'bg-primary-100 dark:bg-primary-900/30 ring-2 ring-primary-500' 
                       : 'bg-gray-50 dark:bg-gray-700'
@@ -167,8 +167,7 @@ export function TaskQueue({ tasks, currentTaskId, canReorder = false, isAdmin = 
                     />
                   ) : (
                     <span 
-                      className={`flex-1 truncate ${isAdmin && onUpdateTitle ? 'group-hover:pr-6' : ''}`}
-                      title={task.title}
+                      className={`flex-1 min-w-0 break-all ${isAdmin && onUpdateTitle ? 'group-hover:pr-6' : ''}`}
                     >
                       {task.title}
                     </span>
@@ -212,9 +211,9 @@ export function TaskQueue({ tasks, currentTaskId, canReorder = false, isAdmin = 
             {votedTasks.map((task) => (
               <li
                 key={task.id}
-                className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-between"
+                className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-start justify-between gap-2 min-w-0"
               >
-                <span className="flex-1 truncate">{task.title}</span>
+                <span className="flex-1 min-w-0 break-all">{task.title}</span>
                 <div className="flex items-center gap-2">
                   {task.votingDurationSeconds != null && (
                     <span className="text-xs text-gray-500">

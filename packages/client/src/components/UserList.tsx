@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { User, Role } from '@planning-poker/shared';
+import type { User, Role, Vote } from '@planning-poker/shared';
 import { getSocket } from '../services/socket';
 
 interface UserListProps {
@@ -7,6 +7,8 @@ interface UserListProps {
   currentUserId?: string;
   currentUserRole?: Role;
   votedUserIds?: string[];
+  votes?: Vote[];
+  votesRevealed?: boolean;
 }
 
 const roleBadges: Record<Role, { emoji: string; label: string; color: string } | null> = {
@@ -16,7 +18,7 @@ const roleBadges: Record<Role, { emoji: string; label: string; color: string } |
   observer: { emoji: '👁️', label: 'Observer', color: 'text-gray-500' },
 };
 
-export function UserList({ users, currentUserId, currentUserRole, votedUserIds = [] }: UserListProps) {
+export function UserList({ users, currentUserId, currentUserRole, votedUserIds = [], votes = [], votesRevealed = false }: UserListProps) {
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
   const connectedCount = users.filter(u => u.connected).length;
 
@@ -26,6 +28,12 @@ export function UserList({ users, currentUserId, currentUserRole, votedUserIds =
   const handleRoleChange = (targetUserId: string, newRole: Role) => {
     const socket = getSocket();
     socket.emit('user:change_role', { userId: targetUserId, role: newRole });
+    setMenuOpenFor(null);
+  };
+
+  const handleKick = (targetUserId: string) => {
+    const socket = getSocket();
+    socket.emit('user:kick', { userId: targetUserId });
     setMenuOpenFor(null);
   };
 
@@ -57,6 +65,9 @@ export function UserList({ users, currentUserId, currentUserRole, votedUserIds =
           const isCurrentUser = user.id === currentUserId;
           const availableRoles = getAvailableRoles(user.role);
           const canChange = canChangeRoles && !isCurrentUser && availableRoles.length > 0;
+          const canKick = canChangeRoles && !isCurrentUser && user.role !== 'creator' && 
+            !(currentUserRole === 'admin' && user.role === 'admin');
+          const userVote = votesRevealed ? votes.find(v => v.userId === user.id) : null;
 
           return (
             <li
@@ -76,9 +87,13 @@ export function UserList({ users, currentUserId, currentUserRole, votedUserIds =
                 {isCurrentUser && <span className="text-xs text-gray-500 ml-1">(you)</span>}
               </span>
 
-              {hasVoted && user.connected && (
+              {userVote ? (
+                <span className="font-bold text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 px-1.5 py-0.5 rounded text-sm">
+                  {userVote.value}
+                </span>
+              ) : hasVoted && user.connected ? (
                 <span className="text-green-500 text-sm">✓</span>
-              )}
+              ) : null}
 
               {badge && (
                 <span title={badge.label} className={`text-sm ${badge.color}`}>
@@ -86,12 +101,12 @@ export function UserList({ users, currentUserId, currentUserRole, votedUserIds =
                 </span>
               )}
 
-              {canChange && (
+              {(canChange || canKick) && (
                 <div className="relative">
                   <button
                     onClick={() => setMenuOpenFor(menuOpenFor === user.id ? null : user.id)}
                     className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-500 text-xs"
-                    title="Change role"
+                    title="Options"
                   >
                     ⋮
                   </button>
@@ -114,6 +129,18 @@ export function UserList({ users, currentUserId, currentUserRole, votedUserIds =
                               <span className="capitalize">{role}</span>
                             </button>
                           ))}
+                          {canKick && availableRoles.length > 0 && (
+                            <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+                          )}
+                          {canKick && (
+                            <button
+                              onClick={() => handleKick(user.id)}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2"
+                            >
+                              🚫
+                              <span>Kick</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </>

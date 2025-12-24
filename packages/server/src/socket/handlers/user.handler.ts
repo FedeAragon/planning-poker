@@ -27,6 +27,40 @@ export function registerUserHandlers(io: TypedServer, socket: TypedSocket) {
       socket.emit('error', { message: 'Failed to change role' });
     }
   });
+
+  socket.on('user:kick', async ({ userId }) => {
+    const requesterId = socket.data.userId;
+    const roomId = socket.data.roomId;
+
+    if (!requesterId || !roomId) {
+      socket.emit('error', { message: 'Not in a room' });
+      return;
+    }
+
+    try {
+      const success = await userService.kick(requesterId, userId);
+      if (!success) {
+        socket.emit('error', { message: 'Not authorized to kick user' });
+        return;
+      }
+
+      // Find all sockets belonging to the kicked user
+      const socketsInRoom = await io.in(roomId).fetchSockets();
+      const kickedUserSockets = socketsInRoom.filter(s => s.data.userId === userId);
+
+      // Notify kicked user and disconnect their sockets
+      for (const kickedSocket of kickedUserSockets) {
+        kickedSocket.emit('user:you_were_kicked', { message: 'You were kicked from the room' });
+        kickedSocket.leave(roomId);
+        kickedSocket.disconnect(true);
+      }
+
+      // Notify remaining users
+      io.to(roomId).emit('user:kicked', { userId });
+    } catch (error) {
+      socket.emit('error', { message: 'Failed to kick user' });
+    }
+  });
 }
 
 export async function handleDisconnect(io: TypedServer, socket: TypedSocket) {

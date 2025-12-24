@@ -42,8 +42,8 @@ export function registerVoteHandlers(io: TypedServer, socket: TypedSocket) {
         io.to(roomId).emit('vote:registered', { userId });
       }
 
-      // Auto-reveal if all voted (only for first-time votes)
-      if (result.allVoted && !result.wasUpdate) {
+      // Auto-reveal if all voted (only for first-time votes and if not already revealed)
+      if (result.allVoted && !result.wasUpdate && !result.alreadyRevealed) {
         const revealResult = await voteService.recalculate(currentTask.id);
         if (revealResult) {
           io.to(roomId).emit('voting:revealed', {

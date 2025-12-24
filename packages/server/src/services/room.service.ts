@@ -17,6 +17,7 @@ export interface JoinRoomResult {
 export interface RejoinRoomResult {
   state: RoomState;
   user: User;
+  wasDisconnected: boolean;
 }
 
 export const roomService = {
@@ -53,6 +54,9 @@ export const roomService = {
     const user = await userRepository.findById(userId);
     if (!user || user.roomId !== roomId) return null;
 
+    // Check if user was disconnected BEFORE marking as connected
+    const wasDisconnected = !user.connected;
+
     // Mark user as connected
     await userRepository.setConnected(userId, true);
     const updatedUser = await userRepository.findById(userId);
@@ -61,7 +65,7 @@ export const roomService = {
     const state = await this.getRoomState(roomId);
     if (!state) return null;
 
-    return { state, user: updatedUser };
+    return { state, user: updatedUser, wasDisconnected };
   },
 
   async getRoomState(roomId: string): Promise<RoomState | null> {
@@ -75,8 +79,12 @@ export const roomService = {
     const votes = currentTask 
       ? await voteRepository.findByTaskId(currentTask.id)
       : [];
+    
+    const votedUserIds = currentTask
+      ? await voteRepository.getUserIdsWhoVoted(currentTask.id)
+      : [];
 
-    return { room, users, tasks, votes };
+    return { room, users, tasks, votes, votedUserIds };
   },
 
   async finish(roomId: string, userId: string): Promise<Room | null> {

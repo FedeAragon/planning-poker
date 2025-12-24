@@ -90,6 +90,30 @@ export const userService = {
     if (!user) return false;
     return user.role !== 'observer' && user.connected;
   },
+
+  async kick(requesterId: string, targetUserId: string): Promise<boolean> {
+    const requester = await userRepository.findById(requesterId);
+    if (!requester) return false;
+
+    // Only creator or admin can kick
+    if (requester.role !== 'creator' && requester.role !== 'admin') return false;
+
+    const target = await userRepository.findById(targetUserId);
+    if (!target) return false;
+
+    // Cannot kick yourself
+    if (requesterId === targetUserId) return false;
+
+    // Cannot kick creator
+    if (target.role === 'creator') return false;
+
+    // Admin cannot kick other admins
+    if (requester.role === 'admin' && target.role === 'admin') return false;
+
+    // Mark user as disconnected
+    await userRepository.setConnected(targetUserId, false);
+    return true;
+  },
 };
 
 

@@ -46,6 +46,7 @@ export interface RoomState {
   users: User[];
   tasks: Task[];
   votes: Vote[];
+  votedUserIds: string[];
 }
 
 export interface VotingResult {

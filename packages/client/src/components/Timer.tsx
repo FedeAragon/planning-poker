@@ -25,7 +25,7 @@ export function Timer({ startedAt, className = '' }: TimerProps) {
     const updateElapsed = () => {
       const now = Date.now();
       const diff = Math.floor((now - startTime) / 1000);
-      setElapsed(diff);
+      setElapsed(Math.max(0, diff));
     };
 
     updateElapsed();

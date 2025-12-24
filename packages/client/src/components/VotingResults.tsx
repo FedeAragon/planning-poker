@@ -1,18 +1,13 @@
-import type { Vote, User } from '@planning-poker/shared';
+import type { Vote } from '@planning-poker/shared';
 import { VOTE_VALUES } from '@planning-poker/shared';
 
 interface VotingResultsProps {
   votes: Vote[];
-  users: User[];
   percentages: Record<number, number>;
   finalEstimate: number;
 }
 
-export function VotingResults({ votes, users, percentages, finalEstimate }: VotingResultsProps) {
-  const getVoterName = (userId: string) => {
-    return users.find(u => u.id === userId)?.name || 'Unknown';
-  };
-
+export function VotingResults({ votes, percentages, finalEstimate }: VotingResultsProps) {
   const votesWithPercentage = VOTE_VALUES
     .map(value => ({
       value,
@@ -52,22 +47,6 @@ export function VotingResults({ votes, users, percentages, finalEstimate }: Voti
             </span>
           </div>
         ))}
-      </div>
-
-      {/* Individual votes */}
-      <div>
-        <h4 className="font-medium text-sm text-gray-600 dark:text-gray-400 mb-2">Votes</h4>
-        <div className="flex flex-wrap gap-2">
-          {votes.map((vote) => (
-            <span
-              key={vote.id}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm"
-            >
-              <span className="text-gray-600 dark:text-gray-400">{getVoterName(vote.userId)}:</span>
-              <span className="font-bold">{vote.value}</span>
-            </span>
-          ))}
-        </div>
       </div>
 
       {/* Final estimate */}

@@ -22,7 +22,7 @@ export function RoomPage() {
   const { user, setUser, setUserName, updateRole } = useUserStore();
   const { 
     room, users, tasks, votes, currentTaskId, votesRevealed, 
-    setRoom, setUsers, addUser, updateUser, setTasks, addTask, updateTask, setVotes, 
+    setRoom, setUsers, addUser, updateUser, removeUser, setTasks, addTask, updateTask, setVotes, 
     setCurrentTaskId, setVotesRevealed 
   } = useRoomStore();
 
@@ -68,6 +68,10 @@ export function RoomPage() {
           setTasks(data.tasks);
           setVotes(data.votes);
           setCurrentTaskId(data.room.currentTaskId);
+          // Sync votedUserIds from server state
+          if (data.votedUserIds) {
+            setVotedUserIds(data.votedUserIds);
+          }
           // Save session for future reconnections
           saveSession(roomId, data.user.id, data.user.name);
           // Remove ?rejoin param from URL to get clean shareable link
@@ -111,8 +115,17 @@ export function RoomPage() {
     // Remove existing listeners before adding new ones to prevent duplicates
     socket.off('user:connected');
     socket.off('user:disconnected');
+    socket.off('user:kicked');
+    socket.off('user:you_were_kicked');
     socket.off('user:role_changed');
     socket.off('room:user_joined');
+
+    // Handle being kicked - redirect to home
+    socket.on('user:you_were_kicked', () => {
+      toast('You were kicked from the room', 'error');
+      clearSession(roomId!);
+      navigate('/', { replace: true });
+    });
 
     socket.on('user:connected', ({ user: newUser }) => {
       addUser(newUser);
@@ -126,6 +139,14 @@ export function RoomPage() {
       updateUser(userId, { connected: false });
       if (disconnectedUser && disconnectedUser.id !== user?.id) {
         toast(`${disconnectedUser.name} disconnected`, 'info');
+      }
+    });
+
+    socket.on('user:kicked', ({ userId }) => {
+      const kickedUser = users.find(u => u.id === userId);
+      removeUser(userId);
+      if (kickedUser && kickedUser.id !== user?.id) {
+        toast(`${kickedUser.name} was kicked`, 'info');
       }
     });
 
@@ -205,6 +226,8 @@ export function RoomPage() {
       setVotesRevealed(false);
       setMyVote(null);
       setVotedUserIds([]);
+      // Reset timer to prevent -1:-1 display while waiting for timer:sync
+      setTimerStart(null);
     });
 
     socket.on('timer:sync', ({ startedAt }) => {
@@ -214,6 +237,8 @@ export function RoomPage() {
     return () => {
       socket.off('user:connected');
       socket.off('user:disconnected');
+      socket.off('user:kicked');
+      socket.off('user:you_were_kicked');
       socket.off('user:role_changed');
       socket.off('room:user_joined');
       socket.off('task:added');
@@ -318,6 +343,8 @@ export function RoomPage() {
             currentUserId={user.id}
             currentUserRole={user.role}
             votedUserIds={votedUserIds}
+            votes={votes}
+            votesRevealed={votesRevealed}
           />
         </Card>
 
@@ -348,7 +375,6 @@ export function RoomPage() {
                 {votesRevealed && votes.length > 0 && (
                   <VotingResults
                     votes={votes}
-                    users={users}
                     percentages={percentages}
                     finalEstimate={finalEstimate}
                   />

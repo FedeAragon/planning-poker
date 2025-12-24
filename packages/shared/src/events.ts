@@ -7,6 +7,7 @@ export interface ClientToServerEvents {
   'room:rejoin': (data: { roomId: string; userId: string }) => void;
   'room:finish': () => void;
   'user:change_role': (data: { userId: string; role: Role }) => void;
+  'user:kick': (data: { userId: string }) => void;
   'task:add': (data: { title: string }) => void;
   'task:add_bulk': (data: { titles: string[] }) => void;
   'task:reorder': (data: { taskId: string; newOrder: number }) => void;
@@ -22,6 +23,8 @@ export interface ServerToClientEvents {
   'user:reconnected': (data: RoomState & { user: User }) => void;
   'user:connected': (data: { user: User }) => void;
   'user:disconnected': (data: { userId: string }) => void;
+  'user:kicked': (data: { userId: string }) => void;
+  'user:you_were_kicked': (data: { message: string }) => void;
   'user:role_changed': (data: { userId: string; role: Role }) => void;
   'room:created': (data: { room: Room }) => void;
   'room:joined': (data: RoomState) => void;

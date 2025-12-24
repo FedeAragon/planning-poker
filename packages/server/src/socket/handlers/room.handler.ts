@@ -68,9 +68,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
         return;
       }
 
-      // Check if user was previously disconnected (no other tabs open)
-      const wasDisconnected = !result.user.connected;
-
       socket.data.userId = result.user.id;
       socket.data.roomId = roomId;
       socket.data.userName = result.user.name;
@@ -83,7 +80,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       });
 
       // Only notify others if user was previously disconnected
-      if (wasDisconnected) {
+      if (result.wasDisconnected) {
         socket.to(roomId).emit('user:connected', { user: result.user });
       }
     } catch (error) {

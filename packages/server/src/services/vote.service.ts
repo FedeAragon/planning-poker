@@ -33,9 +33,9 @@ export const voteService = {
     const existingVote = await voteRepository.findByTaskAndUser(taskId, userId);
     const wasUpdate = !!existingVote;
 
-    // Check if votes were already revealed (more than one vote exists = likely revealed)
-    const existingVotes = await voteRepository.findByTaskId(taskId);
-    const alreadyRevealed = existingVotes.length > 0 && wasUpdate;
+    // Check if votes were already revealed (all connected voters already voted before this submission)
+    // This indicates a previous auto-reveal happened
+    const alreadyRevealed = wasUpdate && await this.checkAllVoted(taskId, task.roomId);
 
     const vote = await voteRepository.upsert({ taskId, userId, value });
     const allVoted = await this.checkAllVoted(taskId, task.roomId);
