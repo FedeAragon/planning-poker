@@ -110,8 +110,8 @@ export const userService = {
     // Admin cannot kick other admins
     if (requester.role === 'admin' && target.role === 'admin') return false;
 
-    // Mark user as disconnected
-    await userRepository.setConnected(targetUserId, false);
+    // Delete user from the database (this also cascades to delete their votes)
+    await userRepository.delete(targetUserId);
     return true;
   },
 };
