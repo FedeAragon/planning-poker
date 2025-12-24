@@ -64,28 +64,28 @@ describe('UserList', () => {
     expect(charlieItem?.textContent).toContain('Charlie');
   });
 
-  it('shows role change menu for creator', () => {
+  it('shows options menu for creator', () => {
     render(<UserList users={mockUsers} currentUserId="1" currentUserRole="creator" />);
     // Creator should see menu buttons for Alice, Bob, and Charlie (not self)
-    const menuButtons = screen.getAllByTitle('Change role');
+    const menuButtons = screen.getAllByTitle('Options');
     expect(menuButtons.length).toBe(3);
   });
 
-  it('shows role change menu for admin', () => {
+  it('shows options menu for admin', () => {
     render(<UserList users={mockUsers} currentUserId="2" currentUserRole="admin" />);
-    // Admin can only change voter <-> observer, so only Bob and Charlie
-    const menuButtons = screen.getAllByTitle('Change role');
+    // Admin can change voter <-> observer, and can kick - Bob and Charlie have options
+    const menuButtons = screen.getAllByTitle('Options');
     expect(menuButtons.length).toBe(2);
   });
 
-  it('does not show role change menu for voter', () => {
+  it('does not show options menu for voter', () => {
     render(<UserList users={mockUsers} currentUserId="3" currentUserRole="voter" />);
-    expect(screen.queryByTitle('Change role')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Options')).not.toBeInTheDocument();
   });
 
-  it('opens role menu on click', () => {
+  it('opens options menu on click', () => {
     render(<UserList users={mockUsers} currentUserId="1" currentUserRole="creator" />);
-    const menuButtons = screen.getAllByTitle('Change role');
+    const menuButtons = screen.getAllByTitle('Options');
     fireEvent.click(menuButtons[0]); // Click menu for Alice
     
     // Should show available roles for Alice (admin -> voter, observer)
