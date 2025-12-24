@@ -1,15 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { VotingResults } from '../VotingResults';
-import type { Vote, User } from '@planning-poker/shared';
+import type { Vote } from '@planning-poker/shared';
 
 describe('VotingResults', () => {
-  const mockUsers: User[] = [
-    { id: 'u1', name: 'Alice', roomId: 'room1', connected: true, role: 'creator' },
-    { id: 'u2', name: 'Bob', roomId: 'room1', connected: true, role: 'voter' },
-    { id: 'u3', name: 'Charlie', roomId: 'room1', connected: true, role: 'voter' },
-  ];
-
   const mockVotes: Vote[] = [
     { id: 'v1', taskId: 't1', userId: 'u1', value: 5 },
     { id: 'v2', taskId: 't1', userId: 'u2', value: 5 },
@@ -22,7 +16,6 @@ describe('VotingResults', () => {
     render(
       <VotingResults 
         votes={mockVotes} 
-        users={mockUsers} 
         percentages={mockPercentages} 
         finalEstimate={5} 
       />
@@ -34,7 +27,6 @@ describe('VotingResults', () => {
     render(
       <VotingResults 
         votes={mockVotes} 
-        users={mockUsers} 
         percentages={mockPercentages} 
         finalEstimate={5} 
       />
@@ -43,25 +35,10 @@ describe('VotingResults', () => {
     expect(screen.getByText('33% (1)')).toBeInTheDocument();
   });
 
-  it('shows individual votes with user names', () => {
-    render(
-      <VotingResults 
-        votes={mockVotes} 
-        users={mockUsers} 
-        percentages={mockPercentages} 
-        finalEstimate={5} 
-      />
-    );
-    expect(screen.getByText('Alice:')).toBeInTheDocument();
-    expect(screen.getByText('Bob:')).toBeInTheDocument();
-    expect(screen.getByText('Charlie:')).toBeInTheDocument();
-  });
-
   it('shows final estimate prominently', () => {
     render(
       <VotingResults 
         votes={mockVotes} 
-        users={mockUsers} 
         percentages={mockPercentages} 
         finalEstimate={5} 
       />
@@ -78,7 +55,6 @@ describe('VotingResults', () => {
     render(
       <VotingResults 
         votes={mockVotes} 
-        users={mockUsers} 
         percentages={mockPercentages} 
         finalEstimate={5} 
       />
@@ -87,23 +63,4 @@ describe('VotingResults', () => {
     const distributionSection = screen.getByText('Distribution').parentElement;
     expect(distributionSection).not.toHaveTextContent('0%');
   });
-
-  it('handles unknown user gracefully', () => {
-    const votesWithUnknown: Vote[] = [
-      ...mockVotes,
-      { id: 'v4', taskId: 't1', userId: 'unknown', value: 2 },
-    ];
-    const percentagesWithUnknown = { ...mockPercentages, 2: 25 };
-    
-    render(
-      <VotingResults 
-        votes={votesWithUnknown} 
-        users={mockUsers} 
-        percentages={percentagesWithUnknown} 
-        finalEstimate={5} 
-      />
-    );
-    expect(screen.getByText('Unknown:')).toBeInTheDocument();
-  });
 });
-
