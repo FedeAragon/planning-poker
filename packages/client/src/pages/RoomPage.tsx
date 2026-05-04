@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUserStore, useRoomStore } from '../store';
 import { getSocket, connectSocket } from '../services/socket';
@@ -33,6 +33,8 @@ export function RoomPage() {
   const [finalEstimate, setFinalEstimate] = useState<number>(0);
   const [timerStart, setTimerStart] = useState<Date | null>(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const reconnectingRef = useRef(false);
 
   const currentTask = tasks.find((t) => t.id === currentTaskId);
   const isAdmin = user?.role === 'creator' || user?.role === 'admin';
@@ -99,6 +101,58 @@ export function RoomPage() {
     rejoin();
   }, [room, user, roomId, navigate]);
 
+  // Auto-reconnect: when socket drops and comes back, re-join the room
+  useEffect(() => {
+    if (!roomId) return;
+
+    const socket = getSocket();
+
+    const handleDisconnectEvent = () => {
+      setIsReconnecting(true);
+    };
+
+    const handleReconnect = async () => {
+      if (reconnectingRef.current) return;
+      reconnectingRef.current = true;
+
+      const session = getSession(roomId);
+      if (!session) {
+        reconnectingRef.current = false;
+        return;
+      }
+
+      socket.once('user:reconnected', (data) => {
+        setUser(data.user);
+        setUserName(data.user.name);
+        setRoom(data.room);
+        setUsers(data.users);
+        setTasks(data.tasks);
+        setVotes(data.votes);
+        setCurrentTaskId(data.room.currentTaskId);
+        if (data.votedUserIds) setVotedUserIds(data.votedUserIds);
+        saveSession(roomId, data.user.id, data.user.name);
+        setIsReconnecting(false);
+        reconnectingRef.current = false;
+        toast('Reconnected', 'success');
+      });
+
+      socket.once('error', () => {
+        clearSession(roomId);
+        navigate(`/?room=${roomId}`, { replace: true });
+        reconnectingRef.current = false;
+      });
+
+      socket.emit('room:rejoin', { roomId, userId: session.userId });
+    };
+
+    socket.on('disconnect', handleDisconnectEvent);
+    socket.on('connect', handleReconnect);
+
+    return () => {
+      socket.off('disconnect', handleDisconnectEvent);
+      socket.off('connect', handleReconnect);
+    };
+  }, [roomId, navigate]);
 
   useEffect(() => {
     if (!room || !user) {
@@ -258,6 +312,17 @@ export function RoomPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  if (isReconnecting) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-2">
+          <p className="text-gray-500 text-lg font-medium">Connection lost</p>
+          <p className="text-gray-400 text-sm">Reconnecting...</p>
+        </div>
       </div>
     );
   }
