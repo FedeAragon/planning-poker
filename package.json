@@ -15,12 +15,17 @@
     "prepare": "husky"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "22.x"
   },
   "devDependencies": {
     "husky": "^9.1.7"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "esbuild", "prisma"]
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
   }
 }
