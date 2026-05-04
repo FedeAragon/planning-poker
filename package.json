@@ -19,8 +19,5 @@
   },
   "devDependencies": {
     "husky": "^9.1.7"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "esbuild", "prisma"]
   }
 }
