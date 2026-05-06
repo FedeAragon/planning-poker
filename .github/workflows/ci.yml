@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Enable corepack (uses packageManager from package.json)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @planning-poker/server exec prisma generate
+
+      - name: Lint
+        run: pnpm -r lint
+
+      - name: Build shared
+        run: pnpm --filter @planning-poker/shared build
+
+      - name: Build server
+        run: pnpm --filter @planning-poker/server build
+
+      - name: Build client
+        run: pnpm --filter @planning-poker/client build

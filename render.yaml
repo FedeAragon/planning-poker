@@ -6,13 +6,13 @@ services:
     region: oregon
     plan: free
     buildCommand: |
-      npm install -g pnpm &&
-      pnpm install &&
-      pnpm --filter shared build &&
-      cd packages/server && npx prisma generate && cd ../.. &&
-      pnpm --filter server build &&
-      cd packages/server && npx prisma db push
-    startCommand: cd packages/server && npx tsx src/index.ts
+      npm install -g pnpm@9 &&
+      pnpm install --prod=false &&
+      pnpm --filter @planning-poker/shared build &&
+      pnpm --filter @planning-poker/server exec prisma generate &&
+      pnpm --filter @planning-poker/server build &&
+      pnpm --filter @planning-poker/server exec prisma db push
+    startCommand: pnpm --filter @planning-poker/server exec tsx src/index.ts
     envVars:
       - key: NODE_ENV
         value: production
@@ -26,10 +26,10 @@ services:
     name: planning-poker-frontend
     runtime: static
     buildCommand: |
-      npm install -g pnpm &&
-      pnpm install &&
-      pnpm --filter shared build &&
-      pnpm --filter client build
+      npm install -g pnpm@9 &&
+      pnpm install --prod=false &&
+      pnpm --filter @planning-poker/shared build &&
+      pnpm --filter @planning-poker/client build
     staticPublishPath: packages/client/dist
     envVars:
       - key: VITE_SERVER_URL
