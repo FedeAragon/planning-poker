@@ -27,14 +27,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: pnpm --filter @planning-poker/server exec prisma generate
+
       - name: Lint
         run: pnpm -r lint
 
       - name: Build shared
         run: pnpm --filter @planning-poker/shared build
-
-      - name: Generate Prisma Client
-        run: pnpm --filter @planning-poker/server exec prisma generate
 
       - name: Build server
         run: pnpm --filter @planning-poker/server build
