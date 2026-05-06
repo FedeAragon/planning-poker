@@ -90,6 +90,9 @@ importers:
       express:
         specifier: ^4.18.2
         version: 4.22.1
+      prisma:
+        specifier: ^5.7.1
+        version: 5.22.0
       socket.io:
         specifier: ^4.7.2
         version: 4.8.1
@@ -106,9 +109,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^1.6.1
         version: 1.6.1(vitest@1.6.1(@types/node@20.19.26)(jsdom@23.2.0))
-      prisma:
-        specifier: ^5.7.1
-        version: 5.22.0
       tsx:
         specifier: ^4.7.0
         version: 4.21.0
