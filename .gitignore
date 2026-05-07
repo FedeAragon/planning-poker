@@ -35,3 +35,7 @@ coverage/
 # Prisma
 packages/server/prisma/migrations/**/migration_lock.toml
 
+# Claude Code & Playwright
+.claude/
+.playwright-mcp/
+
