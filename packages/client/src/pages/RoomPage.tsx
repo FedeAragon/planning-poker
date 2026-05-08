@@ -44,6 +44,10 @@ export function RoomPage() {
   const isAdmin = user?.role === 'creator' || user?.role === 'admin';
   const canVote = user?.role !== 'observer';
 
+  // Always-current ref for majority alert guard — avoids stale closure in socket listener
+  const currentTaskIdRef = useRef(currentTaskId);
+  useEffect(() => { currentTaskIdRef.current = currentTaskId; }, [currentTaskId]);
+
   // Auto-rejoin from session or ?rejoin param
   useEffect(() => {
     if (room && user) return; // Already have data
@@ -258,8 +262,11 @@ export function RoomPage() {
       setMajorityAlertActive(false);
     });
 
-    socket.on('voting:majority_reached', () => {
-      setMajorityAlertActive(true);
+    socket.on('voting:majority_reached', ({ taskId }) => {
+      // Guard against stale events arriving after a task transition
+      if (taskId === currentTaskIdRef.current) {
+        setMajorityAlertActive(true);
+      }
     });
 
     socket.on('vote:registered', ({ userId }) => {
@@ -409,6 +416,7 @@ export function RoomPage() {
           <div className="flex items-center gap-3">
             <Timer startedAt={timerStart} />
             <button
+              type="button"
               onClick={() => setSoundEnabled(!soundEnabled)}
               className="text-gray-400 hover:text-primary-600 transition-colors p-1 text-lg"
               title={soundEnabled ? 'Mute alert sound' : 'Unmute alert sound'}

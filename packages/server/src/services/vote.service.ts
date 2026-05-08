@@ -57,15 +57,16 @@ export const voteService = {
     const connectedVoters = await userRepository.findConnectedVotersByRoomId(roomId);
     const votedUserIds = await voteRepository.getUserIdsWhoVoted(taskId);
 
+    const votedSet = new Set(votedUserIds);
     const total = connectedVoters.length;
-    const voted = connectedVoters.filter(u => votedUserIds.includes(u.id)).length;
+    const voted = connectedVoters.filter(u => votedSet.has(u.id)).length;
 
     // Only "reached" when crossing threshold but NOT when everyone voted
     // (all-voted is handled by auto-reveal).
     const reached = total > 0 && voted / total >= MAJORITY_THRESHOLD && voted < total;
 
     const nonVoterUserIds = connectedVoters
-      .filter(u => !votedUserIds.includes(u.id))
+      .filter(u => !votedSet.has(u.id))
       .map(u => u.id);
 
     return { reached, voted, total, nonVoterUserIds };

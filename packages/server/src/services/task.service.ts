@@ -6,6 +6,8 @@ import type { Task } from '@planning-poker/shared';
 export interface ReorderResult {
   tasks: Task[];
   previousTaskDiscarded: boolean;
+  /** ID of the task whose votes were discarded, when previousTaskDiscarded is true. */
+  discardedTaskId?: string;
 }
 
 export const taskService = {
@@ -106,7 +108,11 @@ export const taskService = {
     }
 
     const updatedTasks = await taskRepository.findByRoomId(task.roomId);
-    return { tasks: updatedTasks, previousTaskDiscarded };
+    return {
+      tasks: updatedTasks,
+      previousTaskDiscarded,
+      discardedTaskId: previousTaskDiscarded ? currentVotingTask?.id : undefined,
+    };
   },
 
   async startVoting(taskId: string): Promise<Task | null> {

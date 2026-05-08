@@ -3,6 +3,7 @@ import { voteService } from '../../services/vote.service';
 import { taskService } from '../../services/task.service';
 import { roomService } from '../../services/room.service';
 import { userRepository } from '../../repositories/user.repository';
+import { userService } from '../../services/user.service';
 
 describe('VoteService', () => {
   describe('submit', () => {
@@ -146,6 +147,97 @@ describe('VoteService', () => {
       const result = await voteService.next(task.id, voter!.user.id);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getMajorityState', () => {
+    it('returns reached: false when ratio is below threshold (1 of 3)', async () => {
+      const { room, user: creator } = await roomService.create('Test', 'Creator');
+      await roomService.join(room.id, 'Voter2');
+      await roomService.join(room.id, 'Voter3');
+      const task = await taskService.add(room.id, 'Task 1');
+
+      await voteService.submit(task.id, creator.id, 3);
+
+      const state = await voteService.getMajorityState(task.id, room.id);
+      expect(state.reached).toBe(false); // 1/3 = 33%
+      expect(state.voted).toBe(1);
+      expect(state.total).toBe(3);
+    });
+
+    it('returns reached: true with correct nonVoterUserIds at ≥66% (2 of 3)', async () => {
+      const { room, user: creator } = await roomService.create('Test', 'Creator');
+      const voter2 = await roomService.join(room.id, 'Voter2');
+      const voter3 = await roomService.join(room.id, 'Voter3');
+      const task = await taskService.add(room.id, 'Task 1');
+
+      await voteService.submit(task.id, creator.id, 3);
+      await voteService.submit(task.id, voter2!.user.id, 5);
+
+      const state = await voteService.getMajorityState(task.id, room.id);
+      expect(state.reached).toBe(true); // 2/3 = 66%
+      expect(state.voted).toBe(2);
+      expect(state.total).toBe(3);
+      expect(state.nonVoterUserIds).toEqual([voter3!.user.id]);
+    });
+
+    it('returns reached: true at 3 of 4 (75%)', async () => {
+      const { room, user: creator } = await roomService.create('Test', 'Creator');
+      const voter2 = await roomService.join(room.id, 'Voter2');
+      const voter3 = await roomService.join(room.id, 'Voter3');
+      await roomService.join(room.id, 'Voter4');
+      const task = await taskService.add(room.id, 'Task 1');
+
+      await voteService.submit(task.id, creator.id, 3);
+      await voteService.submit(task.id, voter2!.user.id, 5);
+      await voteService.submit(task.id, voter3!.user.id, 8);
+
+      const state = await voteService.getMajorityState(task.id, room.id);
+      expect(state.reached).toBe(true); // 3/4 = 75%
+    });
+
+    it('returns reached: false when everyone has voted (deferred to auto-reveal)', async () => {
+      const { room, user: creator } = await roomService.create('Test', 'Creator');
+      const voter2 = await roomService.join(room.id, 'Voter2');
+      const task = await taskService.add(room.id, 'Task 1');
+
+      await voteService.submit(task.id, creator.id, 3);
+      await voteService.submit(task.id, voter2!.user.id, 5);
+
+      const state = await voteService.getMajorityState(task.id, room.id);
+      expect(state.reached).toBe(false); // 2/2 = 100% — all voted, auto-reveal handles this
+    });
+
+    it('excludes observers from total and nonVoterUserIds', async () => {
+      const { room, user: creator } = await roomService.create('Test', 'Creator');
+      const voter2 = await roomService.join(room.id, 'Voter2');
+      const observer = await roomService.join(room.id, 'Observer');
+      await userRepository.setRole(observer!.user.id, 'observer');
+      const task = await taskService.add(room.id, 'Task 1');
+
+      await voteService.submit(task.id, creator.id, 3);
+
+      const state = await voteService.getMajorityState(task.id, room.id);
+      // total should be 2 (creator + voter2), observer excluded
+      expect(state.total).toBe(2);
+      expect(state.nonVoterUserIds).toContain(voter2!.user.id);
+      expect(state.nonVoterUserIds).not.toContain(observer!.user.id);
+    });
+
+    it('excludes disconnected users from total and nonVoterUserIds', async () => {
+      const { room, user: creator } = await roomService.create('Test', 'Creator');
+      const voter2 = await roomService.join(room.id, 'Voter2');
+      const disconnected = await roomService.join(room.id, 'Disconnected');
+      // Mark disconnected user as offline
+      await userService.disconnect(disconnected!.user.id);
+      const task = await taskService.add(room.id, 'Task 1');
+
+      await voteService.submit(task.id, creator.id, 3);
+
+      const state = await voteService.getMajorityState(task.id, room.id);
+      expect(state.total).toBe(2); // creator + voter2 only
+      expect(state.nonVoterUserIds).toContain(voter2!.user.id);
+      expect(state.nonVoterUserIds).not.toContain(disconnected!.user.id);
     });
   });
 

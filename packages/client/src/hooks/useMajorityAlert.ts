@@ -19,7 +19,7 @@ export function useMajorityAlert() {
   const originalTitleRef = useRef<string>(document.title);
   const flashIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chimePlayedRef = useRef(false);
-  const hasFocusRef = useRef(!document.hidden);
+  const hasFocusRef = useRef(document.hasFocus());
 
   // Track window focus/blur independently of visibility
   useEffect(() => {

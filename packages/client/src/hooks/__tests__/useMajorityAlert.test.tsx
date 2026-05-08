@@ -26,6 +26,8 @@ describe('useMajorityAlert', () => {
     // Tab starts visible and focused
     Object.defineProperty(document, 'hidden', { value: false, configurable: true, writable: true });
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true, writable: true });
+    // jsdom returns false for hasFocus() by default — stub to simulate a focused tab
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -49,6 +51,7 @@ describe('useMajorityAlert', () => {
 
   it('flashes title when active and tab is hidden', () => {
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     setAlertState(true);
     renderHook(() => useMajorityAlert());
     // After 1 interval the title should have flipped at least once
@@ -60,6 +63,7 @@ describe('useMajorityAlert', () => {
 
   it('restores original title when alert goes from active to inactive', () => {
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     setAlertState(true);
     const { rerender } = renderHook(() => useMajorityAlert());
     vi.advanceTimersByTime(1000);
@@ -72,6 +76,7 @@ describe('useMajorityAlert', () => {
 
   it('restores original title on unmount', () => {
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     setAlertState(true);
     const { unmount } = renderHook(() => useMajorityAlert());
     vi.advanceTimersByTime(1000);
@@ -81,6 +86,7 @@ describe('useMajorityAlert', () => {
 
   it('plays chime once when active and tab is hidden, with sound enabled', () => {
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     setAlertState(true, true);
     renderHook(() => useMajorityAlert());
     expect(mockPlay).toHaveBeenCalledOnce();
@@ -88,6 +94,7 @@ describe('useMajorityAlert', () => {
 
   it('does NOT play chime when sound is disabled', () => {
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     setAlertState(true, false);
     renderHook(() => useMajorityAlert());
     expect(mockPlay).not.toHaveBeenCalled();
@@ -102,6 +109,7 @@ describe('useMajorityAlert', () => {
 
   it('plays chime only once even if called multiple times while hidden', () => {
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     setAlertState(true, true);
     const { rerender } = renderHook(() => useMajorityAlert());
     rerender();
@@ -111,6 +119,7 @@ describe('useMajorityAlert', () => {
 
   it('resets chime played flag when alert goes inactive then active again', () => {
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
     setAlertState(true, true);
     const { rerender } = renderHook(() => useMajorityAlert());
     expect(mockPlay).toHaveBeenCalledOnce();

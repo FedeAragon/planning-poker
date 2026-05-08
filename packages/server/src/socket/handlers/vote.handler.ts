@@ -62,21 +62,25 @@ export function registerVoteHandlers(io: TypedServer, socket: TypedSocket) {
         const majorityState = await voteService.getMajorityState(currentTask.id, roomId);
         if (majorityState.reached) {
           majorityAlertState.scheduleAlert(currentTask.id, MAJORITY_DELAY_MS, async () => {
-            // Re-evaluate at fire time — someone may have voted during the delay.
-            const fresh = await voteService.getMajorityState(currentTask.id, roomId);
-            if (!fresh.reached) return;
+            try {
+              // Re-evaluate at fire time — someone may have voted during the delay.
+              const fresh = await voteService.getMajorityState(currentTask.id, roomId);
+              if (!fresh.reached) return;
 
-            const sockets = await io.in(roomId).fetchSockets();
-            for (const nonVoterUserId of fresh.nonVoterUserIds) {
-              if (majorityAlertState.hasAlerted(currentTask.id, nonVoterUserId)) continue;
-              sockets
-                .filter(s => s.data.userId === nonVoterUserId)
-                .forEach(s => s.emit('voting:majority_reached', {
-                  taskId: currentTask.id,
-                  voted: fresh.voted,
-                  total: fresh.total,
-                }));
-              majorityAlertState.markAlerted(currentTask.id, nonVoterUserId);
+              const sockets = await io.in(roomId).fetchSockets();
+              for (const nonVoterUserId of fresh.nonVoterUserIds) {
+                if (majorityAlertState.hasAlerted(currentTask.id, nonVoterUserId)) continue;
+                sockets
+                  .filter(s => s.data.userId === nonVoterUserId)
+                  .forEach(s => s.emit('voting:majority_reached', {
+                    taskId: currentTask.id,
+                    voted: fresh.voted,
+                    total: fresh.total,
+                  }));
+                majorityAlertState.markAlerted(currentTask.id, nonVoterUserId);
+              }
+            } catch (err) {
+              console.error('[majority-alert] callback error:', err);
             }
           });
         }

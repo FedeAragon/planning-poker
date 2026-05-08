@@ -78,9 +78,12 @@ export function registerTaskHandlers(io: TypedServer, socket: TypedSocket) {
       io.to(roomId).emit('task:order_updated', { tasks: result.tasks });
 
       if (result.previousTaskDiscarded) {
+        // Clear the timer on the OLD (discarded) task, not the new current one.
+        if (result.discardedTaskId) {
+          majorityAlertState.clearTask(result.discardedTaskId);
+        }
         const currentTask = result.tasks.find(t => t.status === 'voting');
         if (currentTask) {
-          majorityAlertState.clearTask(currentTask.id);
           io.to(roomId).emit('task:current_changed', {
             taskId: currentTask.id,
             previousTaskDuration: 0
