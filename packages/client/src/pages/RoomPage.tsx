@@ -12,6 +12,7 @@ import { VotingResults } from '../components/VotingResults';
 import { CsvUpload } from '../components/CsvUpload';
 import { SummaryModal } from '../components/SummaryModal';
 import { toast } from '../components/Toast';
+import { useMajorityAlert } from '../hooks/useMajorityAlert';
 import type { VoteValue } from '@planning-poker/shared';
 import { VOTE_VALUES } from '@planning-poker/shared';
 
@@ -20,11 +21,14 @@ export function RoomPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, setUser, setUserName, updateRole } = useUserStore();
-  const { 
-    room, users, tasks, votes, currentTaskId, votesRevealed, 
-    setRoom, setUsers, addUser, updateUser, removeUser, setTasks, addTask, updateTask, setVotes, 
-    setCurrentTaskId, setVotesRevealed 
+  const {
+    room, users, tasks, votes, currentTaskId, votesRevealed,
+    majorityAlertActive, soundEnabled,
+    setRoom, setUsers, addUser, updateUser, removeUser, setTasks, addTask, updateTask, setVotes,
+    setCurrentTaskId, setVotesRevealed, setMajorityAlertActive, setSoundEnabled,
   } = useRoomStore();
+
+  useMajorityAlert();
 
   const [myVote, setMyVote] = useState<VoteValue | null>(null);
   const [taskTitle, setTaskTitle] = useState('');
@@ -227,6 +231,7 @@ export function RoomPage() {
     socket.off('voting:revealed');
     socket.off('voting:reset');
     socket.off('voting:next_task');
+    socket.off('voting:majority_reached');
     socket.off('timer:sync');
 
     socket.on('task:added', ({ task }) => {
@@ -250,6 +255,11 @@ export function RoomPage() {
       setMyVote(null);
       setVotedUserIds([]);
       setVotesRevealed(false);
+      setMajorityAlertActive(false);
+    });
+
+    socket.on('voting:majority_reached', () => {
+      setMajorityAlertActive(true);
     });
 
     socket.on('vote:registered', ({ userId }) => {
@@ -265,6 +275,7 @@ export function RoomPage() {
       setVotesRevealed(true);
       setPercentages(pcts);
       setFinalEstimate(estimate);
+      setMajorityAlertActive(false);
     });
 
     socket.on('voting:reset', () => {
@@ -272,6 +283,7 @@ export function RoomPage() {
       setVotesRevealed(false);
       setMyVote(null);
       setVotedUserIds([]);
+      setMajorityAlertActive(false);
     });
 
     socket.on('voting:next_task', ({ taskId }) => {
@@ -280,6 +292,7 @@ export function RoomPage() {
       setVotesRevealed(false);
       setMyVote(null);
       setVotedUserIds([]);
+      setMajorityAlertActive(false);
       // Reset timer to prevent -1:-1 display while waiting for timer:sync
       setTimerStart(null);
     });
@@ -304,6 +317,7 @@ export function RoomPage() {
       socket.off('voting:revealed');
       socket.off('voting:reset');
       socket.off('voting:next_task');
+      socket.off('voting:majority_reached');
       socket.off('timer:sync');
     };
   }, [room, user, roomId, currentTask?.votingStartedAt]);
@@ -331,6 +345,7 @@ export function RoomPage() {
     const socket = getSocket();
     socket.emit('vote:submit', { value });
     setMyVote(value);
+    setMajorityAlertActive(false);
   };
 
   const handleReveal = () => {
@@ -393,6 +408,14 @@ export function RoomPage() {
           </div>
           <div className="flex items-center gap-3">
             <Timer startedAt={timerStart} />
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="text-gray-400 hover:text-primary-600 transition-colors p-1 text-lg"
+              title={soundEnabled ? 'Mute alert sound' : 'Unmute alert sound'}
+              aria-label={soundEnabled ? 'Mute alert sound' : 'Unmute alert sound'}
+            >
+              {soundEnabled ? '🔔' : '🔕'}
+            </button>
             <Button variant="secondary" size="sm" onClick={() => setShowSummary(true)}>
               📊 Summary
             </Button>
@@ -422,9 +445,21 @@ export function RoomPage() {
               <div className="space-y-6 flex-1 flex flex-col justify-center">
                 <p className="text-xl font-medium text-center">{currentTask.title}</p>
                 
+                {/* Majority alert banner */}
+                {majorityAlertActive && !votesRevealed && canVote && myVote == null && (
+                  <div className="rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-600 px-4 py-2 text-center text-amber-800 dark:text-amber-200 text-sm font-medium">
+                    ⏳ Faltás vos — la sala está esperando
+                  </div>
+                )}
+
                 {/* Voting buttons - visible before and after reveal */}
                 {canVote && (
-                  <div className="flex flex-wrap gap-3 justify-center">
+                  <div className={[
+                    'flex flex-wrap gap-3 justify-center rounded-2xl p-2 transition-shadow',
+                    majorityAlertActive && myVote == null && !votesRevealed
+                      ? 'animate-majority-glow'
+                      : '',
+                  ].join(' ')}>
                     {VOTE_VALUES.map((value) => (
                       <VoteButton
                         key={value}

@@ -39,6 +39,7 @@ export interface ServerToClientEvents {
   'voting:revealed': (data: { votes: Vote[]; finalEstimate: number; percentages: Record<number, number> }) => void;
   'voting:next_task': (data: { taskId: string; previousTaskDuration: number }) => void;
   'voting:reset': () => void;
+  'voting:majority_reached': (data: { taskId: string; voted: number; total: number }) => void;
   'timer:sync': (data: { startedAt: Date }) => void;
   'error': (data: { message: string }) => void;
 }

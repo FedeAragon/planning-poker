@@ -22,6 +22,15 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      animation: {
+        'majority-glow': 'majority-glow 1.6s ease-in-out infinite',
+      },
+      keyframes: {
+        'majority-glow': {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(2, 132, 199, 0.0)' },
+          '50%': { boxShadow: '0 0 0 8px rgba(2, 132, 199, 0.45)' },
+        },
+      },
     },
   },
   plugins: [],

@@ -1,6 +1,7 @@
 import type { TypedSocket, TypedServer } from '../types';
 import { taskService } from '../../services/task.service';
 import { userService } from '../../services/user.service';
+import { majorityAlertState } from '../../services/majority-alert.state';
 
 export function registerTaskHandlers(io: TypedServer, socket: TypedSocket) {
   socket.on('task:add', async ({ title }) => {
@@ -79,7 +80,8 @@ export function registerTaskHandlers(io: TypedServer, socket: TypedSocket) {
       if (result.previousTaskDiscarded) {
         const currentTask = result.tasks.find(t => t.status === 'voting');
         if (currentTask) {
-          io.to(roomId).emit('task:current_changed', { 
+          majorityAlertState.clearTask(currentTask.id);
+          io.to(roomId).emit('task:current_changed', {
             taskId: currentTask.id,
             previousTaskDuration: 0
           });

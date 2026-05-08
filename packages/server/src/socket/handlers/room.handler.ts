@@ -2,6 +2,8 @@ import type { TypedSocket, TypedServer } from '../types';
 import { roomService } from '../../services/room.service';
 import { taskService } from '../../services/task.service';
 import { voteService } from '../../services/vote.service';
+import { majorityAlertState } from '../../services/majority-alert.state';
+import { voteRepository } from '../../repositories/vote.repository';
 
 export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   socket.on('room:create', async ({ name }) => {
@@ -74,14 +76,31 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
 
       await socket.join(roomId);
 
-      socket.emit('user:reconnected', { 
+      socket.emit('user:reconnected', {
         user: result.user,
-        ...result.state 
+        ...result.state
       });
 
       // Only notify others if user was previously disconnected
       if (result.wasDisconnected) {
         socket.to(roomId).emit('user:connected', { user: result.user });
+      }
+
+      // Re-arm majority alert if the delay already fired and this user still hasn't voted.
+      // (If the timer is still pending, it will reach them when it fires.)
+      const currentTaskId = result.state.room.currentTaskId;
+      if (currentTaskId && majorityAlertState.hasAlerted(currentTaskId, result.user.id)) {
+        const userVoted = await voteRepository.findByTaskAndUser(currentTaskId, result.user.id);
+        if (!userVoted) {
+          const fresh = await voteService.getMajorityState(currentTaskId, roomId);
+          if (fresh.reached) {
+            socket.emit('voting:majority_reached', {
+              taskId: currentTaskId,
+              voted: fresh.voted,
+              total: fresh.total,
+            });
+          }
+        }
       }
     } catch (error) {
       socket.emit('error', { message: 'Failed to rejoin room' });
