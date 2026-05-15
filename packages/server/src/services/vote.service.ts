@@ -19,6 +19,16 @@ export interface SubmitVoteResult {
   alreadyRevealed: boolean;
 }
 
+export const MAJORITY_THRESHOLD = 0.66;
+export const MAJORITY_DELAY_MS = 12_000;
+
+export interface MajorityState {
+  reached: boolean;
+  voted: number;
+  total: number;
+  nonVoterUserIds: string[];
+}
+
 export const voteService = {
   async submit(taskId: string, userId: string, value: VoteValue): Promise<SubmitVoteResult | null> {
     const task = await taskRepository.findById(taskId);
@@ -41,6 +51,25 @@ export const voteService = {
     const allVoted = await this.checkAllVoted(taskId, task.roomId);
 
     return { vote, allVoted, wasUpdate, alreadyRevealed };
+  },
+
+  async getMajorityState(taskId: string, roomId: string): Promise<MajorityState> {
+    const connectedVoters = await userRepository.findConnectedVotersByRoomId(roomId);
+    const votedUserIds = await voteRepository.getUserIdsWhoVoted(taskId);
+
+    const votedSet = new Set(votedUserIds);
+    const total = connectedVoters.length;
+    const voted = connectedVoters.filter(u => votedSet.has(u.id)).length;
+
+    // Only "reached" when crossing threshold but NOT when everyone voted
+    // (all-voted is handled by auto-reveal).
+    const reached = total > 0 && voted / total >= MAJORITY_THRESHOLD && voted < total;
+
+    const nonVoterUserIds = connectedVoters
+      .filter(u => !votedSet.has(u.id))
+      .map(u => u.id);
+
+    return { reached, voted, total, nonVoterUserIds };
   },
 
   async checkAllVoted(taskId: string, roomId: string): Promise<boolean> {

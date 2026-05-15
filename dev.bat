@@ -1,0 +1,3 @@
+@echo off
+echo Starting Planning Poker (backend + frontend)...
+pnpm dev

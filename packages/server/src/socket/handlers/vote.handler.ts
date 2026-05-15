@@ -1,5 +1,6 @@
 import type { TypedSocket, TypedServer } from '../types';
-import { voteService } from '../../services/vote.service';
+import { voteService, MAJORITY_DELAY_MS } from '../../services/vote.service';
+import { majorityAlertState } from '../../services/majority-alert.state';
 import { taskService } from '../../services/task.service';
 import { userService } from '../../services/user.service';
 
@@ -44,12 +45,43 @@ export function registerVoteHandlers(io: TypedServer, socket: TypedSocket) {
 
       // Auto-reveal if all voted (only for first-time votes and if not already revealed)
       if (result.allVoted && !result.wasUpdate && !result.alreadyRevealed) {
+        majorityAlertState.clearTask(currentTask.id);
         const revealResult = await voteService.recalculate(currentTask.id);
         if (revealResult) {
           io.to(roomId).emit('voting:revealed', {
             votes: revealResult.votes,
             finalEstimate: revealResult.finalEstimate,
             percentages: revealResult.percentages,
+          });
+        }
+        return;
+      }
+
+      // Schedule majority alert (fires after 12s if threshold reached and user hasn't voted yet)
+      if (!result.wasUpdate && !result.alreadyRevealed) {
+        const majorityState = await voteService.getMajorityState(currentTask.id, roomId);
+        if (majorityState.reached) {
+          majorityAlertState.scheduleAlert(currentTask.id, MAJORITY_DELAY_MS, async () => {
+            try {
+              // Re-evaluate at fire time — someone may have voted during the delay.
+              const fresh = await voteService.getMajorityState(currentTask.id, roomId);
+              if (!fresh.reached) return;
+
+              const sockets = await io.in(roomId).fetchSockets();
+              for (const nonVoterUserId of fresh.nonVoterUserIds) {
+                if (majorityAlertState.hasAlerted(currentTask.id, nonVoterUserId)) continue;
+                sockets
+                  .filter(s => s.data.userId === nonVoterUserId)
+                  .forEach(s => s.emit('voting:majority_reached', {
+                    taskId: currentTask.id,
+                    voted: fresh.voted,
+                    total: fresh.total,
+                  }));
+                majorityAlertState.markAlerted(currentTask.id, nonVoterUserId);
+              }
+            } catch (err) {
+              console.error('[majority-alert] callback error:', err);
+            }
           });
         }
       }
@@ -78,6 +110,7 @@ export function registerVoteHandlers(io: TypedServer, socket: TypedSocket) {
         return;
       }
 
+      majorityAlertState.clearTask(currentTask.id);
       io.to(roomId).emit('voting:revealed', {
         votes: result.votes,
         finalEstimate: result.finalEstimate,
@@ -107,6 +140,8 @@ export function registerVoteHandlers(io: TypedServer, socket: TypedSocket) {
         socket.emit('error', { message: 'Not authorized to advance' });
         return;
       }
+
+      majorityAlertState.clearTask(result.previousTask.id);
 
       // Send updated tasks list
       const updatedTasks = await taskService.findByRoomId(roomId);
@@ -148,6 +183,7 @@ export function registerVoteHandlers(io: TypedServer, socket: TypedSocket) {
         return;
       }
 
+      majorityAlertState.clearTask(currentTask.id);
       io.to(roomId).emit('voting:reset');
 
       const updatedTask = await taskService.findCurrentByRoomId(roomId);

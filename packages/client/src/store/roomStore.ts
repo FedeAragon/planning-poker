@@ -8,6 +8,8 @@ interface RoomState {
   votes: Vote[];
   currentTaskId: string | null;
   votesRevealed: boolean;
+  majorityAlertActive: boolean;
+  soundEnabled: boolean;
   setRoom: (room: Room | null) => void;
   setUsers: (users: User[]) => void;
   addUser: (user: User) => void;
@@ -19,7 +21,20 @@ interface RoomState {
   setVotes: (votes: Vote[]) => void;
   setCurrentTaskId: (taskId: string | null) => void;
   setVotesRevealed: (revealed: boolean) => void;
+  setMajorityAlertActive: (active: boolean) => void;
+  setSoundEnabled: (enabled: boolean) => void;
   reset: () => void;
+}
+
+function getInitialSoundEnabled(): boolean {
+  try {
+    const stored = localStorage.getItem('pp_sound_enabled');
+    if (stored !== null) return stored === 'true';
+  } catch {
+    // localStorage not available
+  }
+  // Default: OFF when user prefers reduced motion (guard for environments without matchMedia)
+  return !(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
 }
 
 export const useRoomStore = create<RoomState>((set) => ({
@@ -29,6 +44,8 @@ export const useRoomStore = create<RoomState>((set) => ({
   votes: [],
   currentTaskId: null,
   votesRevealed: false,
+  majorityAlertActive: false,
+  soundEnabled: getInitialSoundEnabled(),
   setRoom: (room) => set({ room, currentTaskId: room?.currentTaskId || null }),
   setUsers: (users) => set({ users }),
   addUser: (user) => set((state) => {
@@ -51,15 +68,25 @@ export const useRoomStore = create<RoomState>((set) => ({
     tasks: state.tasks.map((t) => (t.id === task.id ? task : t)),
   })),
   setVotes: (votes) => set({ votes }),
-  setCurrentTaskId: (currentTaskId) => set({ currentTaskId, votesRevealed: false, votes: [] }),
+  setCurrentTaskId: (currentTaskId) => set({ currentTaskId, votesRevealed: false, votes: [], majorityAlertActive: false }),
   setVotesRevealed: (votesRevealed) => set({ votesRevealed }),
-  reset: () => set({ 
-    room: null, 
-    users: [], 
-    tasks: [], 
-    votes: [], 
-    currentTaskId: null, 
-    votesRevealed: false 
+  setMajorityAlertActive: (majorityAlertActive) => set({ majorityAlertActive }),
+  setSoundEnabled: (enabled) => {
+    try {
+      localStorage.setItem('pp_sound_enabled', String(enabled));
+    } catch {
+      // localStorage not available
+    }
+    set({ soundEnabled: enabled });
+  },
+  reset: () => set({
+    room: null,
+    users: [],
+    tasks: [],
+    votes: [],
+    currentTaskId: null,
+    votesRevealed: false,
+    majorityAlertActive: false,
   }),
 }));
 
